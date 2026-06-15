@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Lumberjack Jump: GORY ULTRA HARDCORE</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { 
+            margin: 0; padding: 0; 
+            background: #090d16; 
+            font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; 
+            text-align: center; color: white; 
+            overflow: hidden; user-select: none; -webkit-user-select: none;
+        }
+        #score-board {
+            display: flex; justify-content: space-around;
+            max-width: 500px; margin: 15px auto 0 auto;
+        }
+        .score-val { font-size: 24px; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+        #score { color: #f1c40f; }
+        #highscore { color: #e67e22; }
+        #game-container { position: relative; width: 95%; max-width: 600px; margin: 10px auto; }
+        canvas { 
+            background: #111827; display: block; width: 100%;
+            border: 5px solid #991b1b; border-radius: 15px; 
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.9);
+        }
+        
+        /* ГЛАВНЫЙ ЭКРАН И МЕНЮ */
+        .screen-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(9, 13, 22, 0.96); border-radius: 11px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; z-index: 10; box-sizing: border-box;
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        }
+        .screen-overlay h2 { color: #dc2626; margin: 0 0 10px 0; font-size: 28px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 0 10px rgba(220,38,38,0.5); }
+        #final-stats { font-size: 18px; margin-bottom: 12px; color: #ecf0f1; }
+        
+        /* БРОНЕБОЙНОЕ ОКНО С ПРИВЯЗКОЙ К ЭКРАНУ ТЕЛЕФОНА (FIXED) */
+        #manual-modal {
+            display: none; 
+            position: fixed; 
+            top: 8vh; 
+            left: 5%; 
+            width: 90%; 
+            height: 78vh; 
+            background: #1e293b; 
+            border: 3px solid #f1c40f; 
+            border-radius: 16px;
+            z-index: 100; 
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px; 
+            box-sizing: border-box; 
+            box-shadow: 0 0 40px rgba(0,0,0,0.95);
+        }
+        #manual-modal h3 { color: #f1c40f; margin: 0 0 15px 0; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* ИДЕАЛЬНЫЙ МОБИЛЬНЫЙ СКРОЛЛ */
+        .manual-scroll { 
+            text-align: left; 
+            font-size: 15px; 
+            line-height: 1.6; 
+            color: #e2e8f0; 
+            overflow-y: scroll; 
+            padding-right: 5px;
+            height: calc(100% - 60px); 
+            -webkit-overflow-scrolling: touch; 
+        }
+        .manual-line { margin-bottom: 15px; display: flex; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px; }
+        .manual-icon { font-size: 22px; margin-right: 14px; min-width: 28px; text-align: center; }
+        
+        /* КНОПКИ */
+        .btn-group { display: flex; flex-direction: column; gap: 10px; width: 75%; }
+        .game-btn { 
+            border: none; padding: 13px 20px; font-size: 15px; font-weight: bold; 
+            border-radius: 30px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            transition: transform 0.1s; text-transform: uppercase;
+        }
+        .game-btn:active { transform: scale(0.95); }
+        .btn-start { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; font-size: 17px; }
+        .btn-manual { background: linear-gradient(135deg, #d97706, #f59e0b); color: #111; }
+        .btn-claim { background: linear-gradient(135deg, #991b1b, #dc2626); color: white; }
+        .btn-restart { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: white; }
+        .btn-close-manual { background: #dc2626; color: white; width: 90%; padding: 12px; font-size: 16px; border-radius: 25px; margin: 5px auto 0 auto; }
+        .btn-exit { background: #475569; color: white; }
+
+        #leaderboard { width: 90%; background: rgba(0, 0, 0, 0.6); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; border: 1px solid #334155; }
+        .top-title { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; font-weight: bold; }
+        .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+        .row.player-row { color: #f1c40f; font-weight: bold; }
+        .hint { font-size: 13px; color: #475569; margin-top: 10px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div id="score-board">
+        <div id="score" class="score-val">Очки: 0</div>
+        <div id="highscore" class="score-val">Рекорд: 0</div>
+    </div>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="600" height="200"></canvas>
+        
+        <div id="main-menu" class="screen-overlay">
+            <h2>LUMBERJACK: TURBO</h2>
+            <p style="color: #94a3b8; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Режим: БЕШЕНЫЙ ЗВЕРИНЕЦ 🌋</p>
+            <div class="btn-group">
+                <button class="game-btn btn-start" onclick="startGame()">ПОГНАЛИ! 🎮</button>
+                <button class="game-btn btn-manual" onclick="toggleManual(true)">СПРАВКА 📜</button>
+            </div>
+        </div>
+
+        <div id="manual-modal">
+            <h3>📜 СВОД ПРАВИЛ ЛЕСОПИЛКИ</h3>
+            <div class="manual-scroll">
+                <div class="manual-line"><span class="manual-icon">🦘</span><span><b>Двойной Прыжок:</b> Один тап — обычный прыжок. Второй тап в воздухе — взлет на максимальную высоту для уклонения от крупных угроз!</span></div>
+                <div class="manual-line"><span class="manual-icon">⚽</span><span><b>Бонусные Пинки:</b> Набегай на Мухоморы 🍄 и Жуков 🐛 сбоку, чтобы пнуть их. Каждый пинок дает базовые очки + <b>1 БОНУСНОЕ ОЧКО</b> сверху! Прыжок сверху просто раздавит их.</span></div>
+                <div class="manual-line"><span class="manual-icon">🐺</span><span><b>Бешеный Волк:</b> Серый хищник сошел с ума и несётся на запредельной скорости, обгоняя саму игру! Реагируй мгновенно!</span></div>
+                <div class="manual-line"><span class="manual-icon">🦅</span><span><b>Грозовой Орёл:</b> Летит на бреющем полёте по центру экрана. Если стоишь на земле — он пролетит над головой. Подпрыгнешь — он разорвёт тебя на куски!</span></div>
+                <div class="manual-line"><span class="manual-icon">🐻</span><span><b>Дикий Медведь:</b> Огромный лесной босс. Обычный прыжок против него бесполезен. Спасти может только своевременный мощный двойной прыжок!</span></div>
+                <div class="manual-line"><span class="manual-icon">🐍</span><span><b>Ядовитая Змея:</b> Крошечная гадюка, затаившаяся прямо в зеленой траве. Из-за мелких размеров её чертовски сложно вовремя заметить.</span></div>
+                <div class="manual-line"><span class="manual-icon">⚙️</span><span><b>Ловушки и Бездна:</b> Пни 🪵, Валуны 🪨, Циркулярные пилы ⚙️, Пропасти 🕳️, Реки 🌊 и Лава 🌋 убивают намертво. Каждое касание взрывает Лесника на кровавые пиксели!</span></div>
+            </div>
+            <button class="game-btn btn-close-manual" onclick="toggleManual(false)">ПОНЯТНО ✅</button>
+        </div>
+
+        <div id="overlay" class="screen-overlay" style="display: none;">
+            <h2 style="text-shadow: 0 0 15px #ef4444;">FATALITY! 💀</h2>
+            <div id="final-stats">Счёт: 0 | Рекорд: 0</div>
+            <div id="leaderboard">
+                <div class="top-title">Глобальный Топ Лесорубов</div>
+                <div id="leader-rows"></div>
+            </div>
+            <div class="btn-group">
+                <button id="claim-btn" class="game-btn btn-claim" onclick="sendResult()">Забрать дерево 🪵</button>
+                <button id="restart-btn" class="game-btn btn-restart" onclick="resetGame()">Играть еще 🔄</button>
+                <button class="game-btn btn-manual" onclick="toggleManual(true)">Справка 📜</button>
+                <button class="game-btn btn-exit" onclick="exitGame()">Выйти ❌</button>
+            </div>
+        </div>
+    </div>
+    <p class="hint">Управляй тапом по экрану canvas или Пробелом. Реагируй мгновенно!</p>
+
+    <script>
+        const tg = window.Telegram.WebApp; tg.expand();
+        const canvas = document.getElementById("gameCanvas"); const ctx = canvas.getContext("2d");
+        const mainMenu = document.getElementById("main-menu"); const overlay = document.getElementById("overlay");
+        const manualModal = document.getElementById("manual-modal");
+        const scoreDiv = document.getElementById("score"); const highscoreDiv = document.getElementById("highscore");
+
+        let gameStarted = false; let score = 0; let gameOver = false;
+        let highscore = localStorage.getItem("lumber_highscore") || 0; highscoreDiv.innerText = "Рекорд: " + highscore;
+
+        let player = { x: 60, y: 135, w: 30, h: 45, dy: 0, jumpForce: -13.5, gravity: 0.72, grounded: true, jumpCount: 0 };
+        let obstacles = []; let spawnTimer = 0; let gameSpeed = 4.8;
+        let nextSpawnInterval = 80;
+        
+        let particles = []; let weatherParticles = []; let stars = [];
+        let speedNoticeTimer = 0; let audioCtx = null;
+
+        for(let i=0; i<30; i++) { stars.push({x: Math.random()*600, y: Math.random()*90, r: Math.random()*1.5+0.5, alpha: Math.random()}); }
+        let clouds = [{x: 50, y: 20, r: 15}, {x: 250, y: 10, r: 22}, {x: 480, y: 30, r: 12}];
+        let bgMountains = [{x: 0, w: 180, h: 70}, {x: 140, w: 260, h: 100}, {x: 360, w: 240, h: 80}];
+        let bgTrees = []; for (let i = 0; i < 9; i++) { bgTrees.push({ x: i * 80 + Math.random() * 20, size: 35 + Math.random() * 20 }); }
+
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                if (type === "jump") {
+                    osc.type = "square"; osc.frequency.setValueAtTime(player.jumpCount === 1 ? 140 : 220, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(player.jumpCount === 1 ? 360 : 520, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === "stomp") {
+                    osc.type = "triangle"; osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(60, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === "kick") {
+                    osc.type = "triangle"; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.12);
+                    gain.gain.setValueAtTime(0.16, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.12);
+                } else if (type === "coin") {
+                    osc.type = "sine"; osc.frequency.setValueAtTime(554, audioCtx.currentTime); osc.frequency.setValueAtTime(831, audioCtx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.22);
+                } else if (type === "death") {
+                    osc.type = "sawtooth"; osc.frequency.setValueAtTime(220, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.5);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+                }
+            } catch (e) {}
+        }
+
+        function toggleManual(show) { manualModal.style.display = show ? "flex" : "none"; }
+
+        function spawnParticle(x, y, color, count=1) {
+            for(let i=0; i<count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: -gameSpeed * 0.2 + (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 3 - (count > 1 ? 2 : 0),
+                    size: Math.random() * 3 + 1, alpha: 1, color: color
+                });
+            }
+        }
+
+        function triggerGoreExplosion(x, y) {
+            for (let i = 0; i < 45; i++) {
+                particles.push({
+                    x: x + 15, y: y + 20,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 1.2) * 9, 
+                    size: Math.random() * 4 + 2,
+                    alpha: 1,
+                    color: Math.random() > 0.3 ? "#991b1b" : "#dc2626", 
+                    gravity: 0.3,
+                    fade: 0.015
+                });
+            }
+            const bodyParts = ["#dc2626", "#ffdbac", "#2980b9", "#2c3e50", "#94a3b8"];
+            bodyParts.forEach(color => {
+                particles.push({
+                    x: x + 12, y: y + 15,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 1.0) * 8,
+                    size: Math.random() * 4 + 7, 
+                    alpha: 1, color: color, gravity: 0.25, fade: 0.008
+                });
+            });
+        }
+
+        function startGame() { initAudio(); mainMenu.style.display = "none"; gameStarted = true; loop(); }
+
+        function update() {
+            if (!gameStarted) return;
+            let env = getEnvironment();
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy;
+                if (p.gravity) p.vy += p.gravity;
+                p.alpha -= p.fade || 0.04;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            if (!gameOver) {
+                if (env.wind && Math.random() < 0.15) {
+                    weatherParticles.push({ type: "leaf", x: 600, y: Math.random()*130, vx: -(gameSpeed + Math.random()*3), vy: Math.random()*0.4, size: Math.random()*3+2, color: Math.random() > 0.5 ? "#16a34a" : "#d97706" });
+                }
+                if (env.rain && Math.random() < 0.6) {
+                    weatherParticles.push({ type: "rain", x: Math.random() * (canvas.width + 100), y: -10, vx: -2, vy: Math.random() * 4 + 11, size: 12 });
+                }
+                if (env.snow && Math.random() < 0.4) {
+                    weatherParticles.push({ type: "snow", x: Math.random() * canvas.width, y: -10, vx: -1 + Math.random()*0.5, vy: Math.random()*1.5 + 2, size: Math.random()*3+1 });
+                }
+            }
+            for (let i = weatherParticles.length - 1; i >= 0; i--) {
+                let wp = weatherParticles[i]; wp.x += wp.vx; wp.y += wp.vy;
+                if (wp.y > canvas.height || wp.x < -20) weatherParticles.splice(i, 1);
+            }
+
+            if (gameOver) return;
+
+            if (player.grounded && Math.random() < 0.3) {
+                spawnParticle(player.x + 5, player.y + player.h - 2, "#95a5a6");
+            }
+
+            if (!player.grounded) {
+                player.dy += player.gravity; player.y += player.dy;
+                if (player.y >= 135) { player.y = 135; player.dy = 0; player.grounded = true; player.jumpCount = 0; spawnParticle(player.x + player.w/2, player.y + player.h - 2, "#95a5a6", 5); }
+            }
+            
+            spawnTimer++;
+            if (spawnTimer > nextSpawnInterval) {
+                let randType = Math.random();
+                if (randType < 0.08) {
+                    obstacles.push({ type: "stump", x: 600, y: 150, w: 28, h: 30, behavior: "deadly" }); 
+                } else if (randType < 0.16) {
+                    obstacles.push({ type: "rock", x: 600, y: 162, w: 34, h: 18, behavior: "deadly" });  
+                } else if (randType < 0.24) {
+                    obstacles.push({ type: "mushroom", x: 600, y: 158, w: 24, h: 22, behavior: "kickable" });
+                } else if (randType < 0.32) {
+                    obstacles.push({ type: "insect", x: 600, y: 168, w: 24, h: 12, behavior: "kickable" });
+                } else if (randType < 0.40) {
+                    obstacles.push({ type: "blade", x: 600, y: 148, w: 32, h: 32, behavior: "deadly" });
+                } else if (randType < 0.48) {
+                    obstacles.push({ type: "pit", x: 600, y: 180, w: 50, h: 20, behavior: "hazard" });
+                } else if (randType < 0.56) {
+                    obstacles.push({ type: "water", x: 600, y: 180, w: 60, h: 20, behavior: "hazard" });
+                } else if (randType < 0.64) {
+                    obstacles.push({ type: "lava", x: 600, y: 176, w: 60, h: 4, behavior: "hazard" });
+                } else if (randType < 0.73) {
+                    obstacles.push({ type: "wolf", x: 600, y: 155, w: 35, h: 25, behavior: "deadly", speedMult: 1.35 });
+                } else if (randType < 0.82) {
+                    obstacles.push({ type: "eagle", x: 600, y: 95, w: 32, h: 20, behavior: "deadly" });
+                } else if (randType < 0.91) {
+                    obstacles.push({ type: "bear", x: 600, y: 130, w: 42, h: 50, behavior: "deadly" });
+                } else {
+                    obstacles.push({ type: "snake", x: 600, y: 170, w: 24, h: 10, behavior: "deadly" });
+                }
+                spawnTimer = 0;
+                nextSpawnInterval = Math.floor(Math.random() * 40) + 48; 
+            }
+            
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                if (obs.kicked) { obs.x += obs.vx; obs.y += obs.vy; obs.vy += 0.4; if (obs.x > canvas.width + 50 || obs.y > canvas.height + 50) obstacles.splice(i, 1); continue; }
+                
+                obs.x -= gameSpeed * (obs.speedMult || 1);
+                
+                if (player.x < obs.x + obs.w && player.x + player.w > obs.x) {
+                    if (obs.behavior === "hazard") {
+                        if (player.y >= 132) { endGame(); return; }
+                    } else if (player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                        if (obs.behavior === "deadly") {
+                            endGame(); return; 
+                        } else if (obs.behavior === "kickable") {
+                            if (player.dy > 0 && player.y + player.h - player.dy <= obs.y + 12) {
+                                obstacles.splice(i, 1); score += 20; scoreDiv.innerText = "Очки: " + score;
+                                player.dy = -8.5; player.jumpCount = 1; playSound("stomp");
+                                spawnParticle(obs.x + obs.w/2, obs.y, obs.type === "mushroom" ? "#dc2626" : "#f59e0b", 8);
+                            } else {
+                                obs.kicked = true; obs.vx = gameSpeed + 5.0; obs.vy = -7.0;
+                                playSound("kick"); 
+                                score += 11; 
+                                scoreDiv.innerText = "Очки: " + score;
+                                spawnParticle(obs.x, obs.y + obs.h/2, "#f1c40f", 5);
+                            }
+                        }
+                    }
+                }
+                
+                if (obs.x + obs.w < 0) {
+                    obstacles.splice(i, 1); score += 10; scoreDiv.innerText = "Очки: " + score;
+                    if (score % 100 === 0) playSound("coin");
+                    if (score % 50 === 0) { gameSpeed += 0.35; speedNoticeTimer = 120; }
+                }
+            }
+            if (speedNoticeTimer > 0) speedNoticeTimer--;
+        }
+
+        function getEnvironment() {
+            if (score < 200) return { sky: "#27272a", mountain: "#18181b", tree: "#09090b", clouds: true, stars: false, wind: true, rain: false, snow: false };
+            else if (score < 500) return { sky: "#4c0519", mountain: "#270510", tree: "#020005", clouds: true, stars: false, wind: false, rain: true, snow: false };
+            else return { sky: "#030712", mountain: "#000000", tree: "#000000", clouds: false, stars: true, wind: false, rain: false, snow: true };
+        }
+
+        function draw() {
+            let env = getEnvironment();
+            ctx.fillStyle = env.sky; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (env.stars) { for(let s of stars) { if (Math.random() < 0.05) s.alpha = Math.random(); ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`; ctx.fillRect(s.x, s.y, s.r, s.r); } }
+            if (env.clouds) { ctx.fillStyle = "rgba(255,255,255,0.1)"; for (let c of clouds) { if (!gameOver) c.x -= 0.15; if (c.x + 40 < 0) c.x = canvas.width + 30; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.arc(c.x+15, c.y-5, c.r*1.2, 0, Math.PI*2); ctx.arc(c.x+32, c.y, c.r, 0, Math.PI*2); ctx.fill(); } }
+            ctx.fillStyle = env.mountain; for (let m of bgMountains) { if (!gameOver) m.x -= 0.3; if (m.x + m.w < 0) m.x = canvas.width + Math.random()*20; ctx.beginPath(); ctx.moveTo(m.x, 180); ctx.lineTo(m.x + m.w/2, 180 - m.h); ctx.lineTo(m.x + m.w, 180); ctx.fill(); }
+            ctx.fillStyle = env.tree; for (let tree of bgTrees) { if (!gameOver) tree.x -= 0.6; if (tree.x + tree.size < 0) tree.x = canvas.width + Math.random() * 30; ctx.beginPath(); ctx.moveTo(tree.x, 180); ctx.lineTo(tree.x + tree.size/2, 180 - tree.size); ctx.lineTo(tree.x + tree.size, 180); ctx.fill(); }
+
+            ctx.fillStyle = "#15803d"; ctx.fillRect(0, 180, canvas.width, 20);
+            ctx.fillStyle = "#22c55e"; ctx.fillRect(0, 180, canvas.width, 4);
+
+            for (let obs of obstacles) { 
+                let ox = obs.x; let oy = obs.y; let ow = obs.w; let oh = obs.h;
+                if (obs.type === "pit") { ctx.fillStyle = env.sky; ctx.fillRect(ox, 180, ow, 20); }
+                else if (obs.type === "water") { ctx.fillStyle = "#1d4ed8"; ctx.fillRect(ox, 180, ow, 20); }
+                else if (obs.type === "lava") { ctx.fillStyle = "#ea580c"; ctx.fillRect(ox, 180, ow, 20); }
+                else if (obs.type === "stump") { ctx.fillStyle = "#78350f"; ctx.fillRect(ox, oy + 4, ow, oh - 4); ctx.fillStyle = "#f59e0b"; ctx.fillRect(ox + 2, oy, ow - 4, 4); }
+                else if (obs.type === "rock") { ctx.fillStyle = "#4b5563"; ctx.beginPath(); ctx.moveTo(ox, oy+oh); ctx.lineTo(ox+6, oy+4); ctx.lineTo(ox+ow-8, oy); ctx.lineTo(ox+ow, oy+oh); ctx.fill(); }
+                else if (obs.type === "mushroom") { ctx.fillStyle = "#f8fafc"; ctx.fillRect(ox + ow/2 - 4, oy + oh - 8, 8, 8); ctx.fillStyle = "#ef4444"; ctx.beginPath(); ctx.arc(ox + ow/2, oy + oh - 6, ow/2, Math.PI, 0); ctx.fill(); }
+                else if (obs.type === "insect") { ctx.fillStyle = "#b45309"; ctx.fillRect(ox + 4, oy + 2, ow - 8, oh - 2); }
+                else if (obs.type === "wolf") {
+                    ctx.fillStyle = "#4b5563"; ctx.fillRect(ox, oy, ow, oh);
+                    ctx.fillStyle = "#ef4444"; ctx.fillRect(ox + 4, oy + 4, 4, 4); 
+                } else if (obs.type === "eagle") {
+                    ctx.fillStyle = "#78350f"; ctx.fillRect(ox, oy, ow, oh);
+                    ctx.fillStyle = "#f59e0b"; ctx.fillRect(ox + ow - 4, oy + 4, 4, 6); 
+                } else if (obs.type === "bear") {
+                    ctx.fillStyle = "#3f2a14"; ctx.fillRect(ox, oy, ow, oh);
+                    ctx.fillStyle = "#1e1b18"; ctx.fillRect(ox + ow - 10, oy + 6, 6, 6); 
+                } else if (obs.type === "snake") {
+                    ctx.fillStyle = "#166534"; ctx.fillRect(ox, oy, ow, oh);
+                    ctx.fillStyle = "#ef4444"; ctx.fillRect(ox + ow - 2, oy + 2, 2, 2); 
+                } else if (obs.type === "blade") {
+                    ctx.save(); ctx.translate(ox + ow/2, oy + oh/2); ctx.rotate((Date.now() / 50) % (Math.PI * 2));
+                    ctx.fillStyle = "#cbd5e1"; ctx.beginPath(); ctx.arc(0, 0, ow/2, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#475569"; for(let k=0; k<8; k++) { ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.moveTo(0, -ow/2); ctx.lineTo(6, -ow/2 + 4); ctx.lineTo(-6, -ow/2 + 4); ctx.fill(); }
+                    ctx.restore();
+                }
+            }
+
+            for (let wp of weatherParticles) {
+                if (wp.type === "rain") { ctx.strokeStyle = "rgba(147, 197, 253, 0.4)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(wp.x, wp.y); ctx.lineTo(wp.x - 2, wp.y + wp.size); ctx.stroke(); }
+                else if (wp.type === "snow") { ctx.fillStyle = "rgba(255, 255, 255, 0.7)"; ctx.beginPath(); ctx.arc(wp.x, wp.y, wp.size, 0, Math.PI*2); ctx.fill(); }
+                else if (wp.type === "leaf") { ctx.fillStyle = wp.color; ctx.fillRect(wp.x, wp.y, wp.size, wp.size/1.5); }
+            }
+
+            for (let p of particles) { ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha; ctx.fillRect(p.x, p.y, p.size, p.size); }
+            ctx.globalAlpha = 1.0;
+
+            if (!gameOver) {
+                let x = player.x; let y = player.y; let w = player.w; let h = player.h;
+                ctx.fillStyle = "#2c3e50"; ctx.fillRect(x + 3, y + h - 6, 8, 6); ctx.fillRect(x + w - 11, y + h - 6, 8, 6);
+                ctx.fillStyle = "#2980b9"; ctx.fillRect(x + 4, y + h - 16, w - 8, 10);
+                ctx.fillStyle = "#c0392b"; ctx.fillRect(x + 2, y + h - 32, w - 4, 16);
+                ctx.fillStyle = "#111111"; ctx.fillRect(x + 6, y + h - 30, 4, 4); ctx.fillRect(x + 18, y + h - 30, 4, 4); ctx.fillRect(x + 12, y + h - 22, 4, 4);
+                ctx.fillStyle = "#ffdbac"; ctx.fillRect(x + 6, y + 4, w - 12, 12);
+                ctx.fillStyle = "#d35400"; ctx.fillRect(x + 5, y + 11, w - 10, 8); ctx.fillRect(x + w - 11, y + 9, 5, 4);
+                ctx.fillStyle = "#2c3e50"; ctx.fillRect(x + w - 12, y + 6, 3, 3);
+                ctx.fillStyle = "#e74c3c"; ctx.fillRect(x + 5, y, w - 10, 5); ctx.beginPath(); ctx.arc(x + w/2, y - 2, 3, 0, Math.PI * 2); ctx.fill();
+            }
+
+            if (speedNoticeTimer > 0) { ctx.fillStyle = "#f1c40f"; ctx.font = "bold 20px sans-serif"; ctx.fillText("УСКОРЕНИЕ! ⚡", 225, 45); }
+        }
+
+        function loop() { if (!gameStarted) return; update(); draw(); requestAnimationFrame(loop); }
+        
+        function triggerJump() {
+            if (!gameStarted || gameOver) return;
+            initAudio();
+            if (player.jumpCount < 2) { 
+                player.dy = player.jumpForce; player.grounded = false; player.jumpCount++; playSound("jump");
+                spawnParticle(player.x + 10, player.y + player.h - 5, player.jumpCount === 1 ? "#22c55e" : "#3b82f6", 6); 
+            }
+        }
+
+        /* ИСПРАВЛЕНА СИСТЕМА УПРАВЛЕНИЯ НА ТЕЛЕФОНАХ И ПК */
+        let lastTouchTime = 0;
+
+        window.addEventListener("touchstart", (e) => { 
+            if(e.target.classList.contains("game-btn") || e.target.closest("#manual-modal") || e.target.closest("#overlay")) return; 
+            lastTouchTime = Date.now(); // Запоминаем время тапа
+            triggerJump(); 
+        });
+
+        window.addEventListener("mousedown", (e) => { 
+            if(e.target.classList.contains("game-btn") || e.target.closest("#manual-modal") || e.target.closest("#overlay")) return; 
+            if (Date.now() - lastTouchTime < 500) return; // Игнорируем фантомный клик мыши после тапа на мобилках
+            triggerJump(); 
+        });
+
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space" || e.key === " ") {
+                // Если открыты окна меню или справки, пробел не должен вызывать прыжок
+                if (mainMenu.style.display !== "none" || manualModal.style.display === "flex" || overlay.style.display === "flex") return;
+                e.preventDefault(); // Глушим скролл страницы от пробела
+                triggerJump();
+            }
+        });
+
+        function endGame() { 
+            if (gameOver) return; 
+            gameOver = true; playSound("death");
+            triggerGoreExplosion(player.x, player.y);
+
+            if (score > highscore) { highscore = score; localStorage.setItem("lumber_highscore", highscore); highscoreDiv.innerText = "Рекорд: " + highscore; }
+            document.getElementById("final-stats").innerText = "Счёт: " + score + " | Рекорд: " + highscore;
+            
+            let woodEarned = Math.floor(score / 100) * 5; if (woodEarned > 50) woodEarned = 50;
+            document.getElementById("claim-btn").innerText = "Забрать дерево (+" + woodEarned + " 🪵)";
+
+            let globalTop = [];
+            const urlParams = new URLSearchParams(window.location.search);
+            const topParam = urlParams.get('top');
+
+            if (topParam) {
+                const pairs = topParam.split(',');
+                pairs.forEach(pair => {
+                    const parts = pair.split('-');
+                    if (parts.length >= 2) {
+                        const scoreVal = parseInt(parts.pop());
+                        const nameVal = parts.join('-'); 
+                        globalTop.push({ name: nameVal, score: scoreVal });
+                    }
+                });
+            }
+
+            let alreadyInTop = globalTop.some(p => p.score === parseInt(highscore));
+            if (!alreadyInTop) {
+                globalTop.push({ name: "🪵 Ты (Рекорд)", score: parseInt(highscore), isPlayer: true });
+            }
+
+            globalTop.sort((a, b) => b.score - a.score);
+            globalTop = globalTop.slice(0, 5);
+
+            let rowsHtml = "";
+            globalTop.forEach((item, index) => {
+                let medal = "📜 ";
+                if (index === 0) medal = "🥇 ";
+                else if (index === 1) medal = "🥈 ";
+                else if (index === 2) medal = "🥉 ";
+
+                let rowClass = item.isPlayer ? "row player-row" : "row";
+                rowsHtml += `<div class="${rowClass}"><span>${medal}${item.name}</span><span>${item.score}</span></div>`;
+            });
+            document.getElementById("leader-rows").innerHTML = rowsHtml;
+            
+            setTimeout(() => { overlay.style.display = "flex"; }, 400);
+        }
+
+        function resetGame() {
+            score = 0; gameOver = false; gameSpeed = 4.8; obstacles = []; particles = []; weatherParticles = []; spawnTimer = 0; speedNoticeTimer = 0;
+            player.jumpCount = 0; player.y = 135; player.dy = 0; player.grounded = true;
+            scoreDiv.innerText = "Очки: 0"; overlay.style.display = "none";
+        }
+
+        function exitGame() { tg.close(); }
+        function sendResult() { 
+            tg.sendData("game_score:" + score + ":1"); 
+            tg.close(); 
+        }
+        draw();
+    </script>
+</body>
+</html>
