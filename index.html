@@ -27,14 +27,13 @@
             box-shadow: 0px 10px 25px rgba(0,0,0,0.9);
         }
         
-        /* ГЛАВНЫЙ ЭКРАН И МЕНЮ - ИСПРАВЛЕНО ДЛЯ СКРОЛЛА */
+        /* ГЛАВНЫЙ ЭКРАН И МЕНЮ */
         .screen-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(9, 13, 22, 0.96); border-radius: 9px;
-            display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
-            padding: 20px 15px; z-index: 10; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 15px; z-index: 10; box-sizing: border-box;
             backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-            overflow-y: auto; /* Включен скролл для контента */
         }
         .screen-overlay h2 { color: #dc2626; margin: 0 0 5px 0; font-size: 26px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 0 10px rgba(220,38,38,0.5); }
         #final-stats { font-size: 16px; margin-bottom: 8px; color: #ecf0f1; font-weight: 700; }
@@ -56,41 +55,54 @@
         .manual-line { margin-bottom: 12px; display: flex; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; }
         .manual-icon { font-size: 20px; margin-right: 12px; min-width: 25px; text-align: center; }
         
-        /* ТАБЛИЦА ЛИДЕРОВ - ИСПРАВЛЕНА ВЫСОТА */
+        /* ТАБЛИЦА ЛИДЕРОВ */
         #leaderboard { 
-            width: 100%; 
-            max-width: 440px; 
+            width: 95%; max-width: 440px; 
             background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98)); 
             border: 2px solid #334155; 
             border-radius: 12px; 
             padding: 10px 12px; 
-            margin-bottom: 15px; 
+            margin-bottom: 10px; 
             box-shadow: inset 0 0 15px rgba(0,0,0,0.6), 0 4px 15px rgba(0,0,0,0.5); 
             box-sizing: border-box;
-            max-height: 45vh; /* Ограничение высоты таблицы */
-            overflow-y: auto; /* Скролл внутри таблицы */
         }
         .top-title { 
             font-size: 12px; color: #f1c40f; text-transform: uppercase; 
-            margin-bottom: 8px; font-weight: 900; letter-spacing: 1px;
+            margin-bottom: 8px; font-weight: 900; letter-spacing: 1px; 
             border-bottom: 1px solid rgba(241, 196, 15, 0.2);
             padding-bottom: 4px; text-shadow: 0 0 6px rgba(241, 196, 15, 0.3);
         }
         .row { 
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 13px; padding: 6px 10px; margin: 4px 0;
-            border-radius: 6px; background: rgba(255, 255, 255, 0.02);
+            display: flex; justify-content: space-between; 
+            align-items: center; font-size: 13px; 
+            padding: 6px 10px; margin: 4px 0;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.04);
         }
-        .row span:first-child { display: flex; align-items: center; gap: 6px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .score-badge { background: #1e293b; padding: 2px 8px; border-radius: 10px; font-weight: 800; color: #38bdf8; border: 1px solid #475569; font-size: 12px; min-width: 35px; text-align: center; }
+        .row span:first-child {
+            display: flex; align-items: center; gap: 6px; text-align: left;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .score-badge {
+            background: #1e293b; padding: 2px 8px; border-radius: 10px;
+            font-weight: 800; color: #38bdf8; border: 1px solid #475569;
+            font-size: 12px; min-width: 35px; text-align: center;
+        }
         
-        .row.player-row { background: linear-gradient(90deg, rgba(241, 196, 15, 0.18), rgba(230, 126, 34, 0.15)); border: 1px solid #f1c40f; color: #fff; font-weight: 800; }
-        .row.player-row .score-badge { background: #f1c40f; color: #0f172a; }
+        .row.player-row { 
+            background: linear-gradient(90deg, rgba(241, 196, 15, 0.18), rgba(230, 126, 34, 0.15));
+            border: 1px solid #f1c40f; color: #fff; font-weight: 800; 
+        }
+        .row.player-row .score-badge { background: #f1c40f; color: #0f172a; border: 1px solid #f1c40f; }
         
         /* КНОПКИ */
-        .btn-group { display: flex; flex-direction: column; gap: 6px; width: 85%; margin-top: auto; }
-        .game-btn { border: none; padding: 10px 15px; font-size: 14px; font-weight: bold; border-radius: 25px; cursor: pointer; transition: transform 0.1s; text-transform: uppercase; }
+        .btn-group { display: flex; flex-direction: column; gap: 6px; width: 85%; }
+        .game-btn { 
+            border: none; padding: 10px 15px; font-size: 14px; font-weight: bold; 
+            border-radius: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.1s; text-transform: uppercase;
+        }
         .game-btn:active { transform: scale(0.96); }
         .btn-start { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; font-size: 15px; }
         .btn-manual { background: linear-gradient(135deg, #d97706, #f59e0b); color: #111; }
@@ -112,7 +124,7 @@
         <div id="main-menu" class="screen-overlay">
             <h2>LUMBERJACK: TURBO</h2>
             <p style="color: #94a3b8; margin-top: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Режим: БЕШЕНЫЙ ЗВЕРИНЕЦ 🌋</p>
-            <div class="btn-group" style="margin-top: 20px;">
+            <div class="btn-group">
                 <button class="game-btn btn-start" onclick="startGame()">ПОГНАЛИ! 🎮</button>
                 <button class="game-btn btn-manual" onclick="toggleManual(true)">СПРАВКА 📜</button>
             </div>
@@ -124,7 +136,7 @@
                 <div class="manual-line"><span class="manual-icon">🦘</span><span><b>Двойной Прыжок:</b> Один тап — обычный прыжок. Второй тап в воздухе — взлет на максимальную высоту!</span></div>
                 <div class="manual-line"><span class="manual-icon">⚽</span><span><b>Бонусные Пинки:</b> Набегай на Мухоморы 🍄 и Жуков 🐛 сбоку, чтобы пнуть их.</span></div>
                 <div class="manual-line"><span class="manual-icon">🐺</span><span><b>Бешеный Волк:</b> Несётся на запредельной скорости!</span></div>
-                <div class="manual-line"><span class="manual-icon">🦅</span><span><b>Грозовой Орёл:</b> Летит по центру. Если стоишь на земле — он пролетит над головой.</span></div>
+                <div class="manual-line"><span class="manual-icon">🦅</span><span><b>Грозовой Орёл:</b> Летит по центру. Если стоишь — он пролетит над головой.</span></div>
                 <div class="manual-line"><span class="manual-icon">🐻</span><span><b>Дикий Медведь:</b> Только мощный двойной прыжок спасет.</span></div>
                 <div class="manual-line"><span class="manual-icon">🐍</span><span><b>Ядовитая Змея:</b> Мелкая и опасная.</span></div>
                 <div class="manual-line"><span class="manual-icon">⚙️</span><span><b>Ловушки:</b> Пни, Валуны, Пилы, Пропасти, Реки и Лава убивают намертво.</span></div>
@@ -133,10 +145,10 @@
         </div>
 
         <div id="overlay" class="screen-overlay" style="display: none;">
-            <h2 style="text-shadow: 0 0 15px #ef4444; margin-top: 10px;">FATALITY! 💀</h2>
+            <h2 style="text-shadow: 0 0 15px #ef4444;">FATALITY! 💀</h2>
             <div id="final-stats">Счёт: 0 | Рекорд: 0</div>
             <div id="leaderboard">
-                <div class="top-title">🏆 Доска Почёта</div>
+                <div class="top-title">🏆 Доска Почёта Лесопилки</div>
                 <div id="leader-rows"></div>
             </div>
             <div class="btn-group">
